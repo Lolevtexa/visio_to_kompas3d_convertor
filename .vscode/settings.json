@@ -1,0 +1,11 @@
+{
+    "python.analysis.extraPaths": [
+      "./sdk",
+      "./src"
+    ],
+  
+    "python.autoComplete.extraPaths": [
+      "./sdk"
+    ]
+  }
+  

@@ -7,29 +7,14 @@
       "request": "launch",
       "module": "visio_parser.parser",
       "args": [
-        "${workspaceFolder}\\test\\input.vsd",
+        "${workspaceFolder}\\test\\input.vsdx",
         "--json",
         "${workspaceFolder}\\test\\data.json"
       ],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "env": {
-        "PYTHONPATH": "${workspaceFolder}\\src"
-      }
-    },
-    {
-      "name": "JSON → Kompas",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "kompas_builder.builder",
-      "args": [
-        "${workspaceFolder}/test/data.json",
-        "${workspaceFolder}/test/output.cdw"
-      ],
-      "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src"
+        "PYTHONPATH": "${workspaceFolder}/src;${workspaceFolder}/sdk"
       }
     },
     {
@@ -38,7 +23,7 @@
       "request": "launch",
       "program": "${workspaceFolder}\\src\\main.py",
       "args": [
-        "${workspaceFolder}\\test\\input.vsd",
+        "${workspaceFolder}\\test\\input.vsdx",
         "${workspaceFolder}\\test\\output.cdw",
         "--json",
         "${workspaceFolder}\\test\\data.json"
@@ -46,7 +31,22 @@
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "env": {
-        "PYTHONPATH": "${workspaceFolder}\\src"
+        "PYTHONPATH": "${workspaceFolder}/src;${workspaceFolder}/sdk"
+      }
+    },
+    {
+      "name": "JSON → Kompas (builder)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "kompas_builder.builder",
+      "args": [
+        "${workspaceFolder}\\test\\data.json",
+        "${workspaceFolder}\\test\\output_from_json.cdw"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src;${workspaceFolder}/sdk"
       }
     }
   ]
