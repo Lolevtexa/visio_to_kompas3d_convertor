@@ -32,7 +32,8 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src;${workspaceFolder}/sdk"
-      }
+      },
+      "postDebugTask": "Open in Kompas"
     },
     {
       "name": "JSON → Kompas (builder)",
