@@ -1,5 +1,5 @@
 from .kompas_app import KompasApp
-from kompas5Constants import (
+from kompas_builder.kompas5Constants import (
     ksDocumentParam,
     ksLineSegParam,
     ksRectangleParam,
@@ -10,17 +10,25 @@ from kompas5Constants import (
 class Kompas2D:
     def __init__(self, kompas_app: KompasApp):
         self.app = kompas_app
+
+        # Получаем параметры документа
         param = self.app.get_param_struct(ksDocumentParam)
         param.Init()
-        param.type = 1  # A3
+        param.type = 1  # стандартный лист
+
+        # Берём параметры штампа и самого листа
+        layout = param.GetLayoutParam()
+        layout.shtType   = 1       # оформление первого листа
+        sheet = layout.GetSheetParam()
+        sheet.format     = 3       # 3 → A3
+        sheet.direct     = True    # True → ландшафт
+        sheet.multiply   = 1       # по умолчанию: 1 лист
+        # Сохраняем, чтобы потом менять число листов
+        self._sheet_param = sheet
+
+        # Создаём документ
         self.doc = self.app.app5.Document2D
         self.doc.ksCreateDocument(param)
-
-    def open_sheet(self, index: int):
-        try:
-            self.doc.ksOpenSheet(index)
-        except Exception:
-            pass
 
     def line(self, x1, y1, x2, y2, style=1):
         self.doc.ksLineSeg(x1, y1, x2, y2, style)

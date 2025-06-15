@@ -32,17 +32,23 @@ class Builder:
 
     def build(self, data, output_cdw):
         pages = data.get("pages", [])
-        # self.format_sheets(len(pages))
+        total = len(pages)
 
+        # 1) Устанавливаем нужное число листов (multiply)
+        #    теперь в документе будет A3 × total листов подряд
+        self.doc2d._sheet_param.multiply = total  # :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
+
+        # 2) Рисуем всё на одном «длинном» листе, смещая контент по X на (idx-1)*420
         for idx, page in enumerate(pages, start=1):
-            self.doc2d.open_sheet(idx)
             b = page["bounds"]
-            vis_w = (b["max_x"] - b["min_x"]) or 1
-            vis_h = (b["max_y"] - b["min_y"]) or 1
+            vis_w = max(b["max_x"] - b["min_x"], 1)
+            vis_h = max(b["max_y"] - b["min_y"], 1)
             usable_w = self.sheet_w - 2*self.margin
             usable_h = self.sheet_h - 2*self.margin
             scale = min(usable_w/vis_w, usable_h/vis_h)
-            off_x = self.margin - b["min_x"]*scale
+
+            # cмещение: левый отступ + сдвиг на предыдущие листы (420 мм)
+            off_x = self.margin - b["min_x"]*scale + (idx-1)*self.sheet_w
             off_y = self.margin - b["min_y"]*scale
 
             for shp in page["shapes"]:

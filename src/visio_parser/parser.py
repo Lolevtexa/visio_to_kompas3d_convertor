@@ -1,7 +1,6 @@
-# parser.py
 import json
 from math import inf
-from vsdx import VisioFile  # библиотека для чтения .vsdx без Visio
+from vsdx import VisioFile
 from .utils import to_mm, update_bounds
 
 def parse_visio_to_structure(vsdx_path: str, json_path: str = None) -> dict:
