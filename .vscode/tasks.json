@@ -1,22 +1,25 @@
 {
     "version": "2.0.0",
     "tasks": [
-      {
-        "label": "Open in Kompas",
-        "type": "shell",
-        "command": "python",
-        "args": [
-          "${workspaceFolder}/scripts/open_in_kompas.py",
-          "${workspaceFolder}/test/output.cdw"
-        ],
-        "group": "none",
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "panel": "shared"
-        },
-        "problemMatcher": []
-      }
+        {
+            "label": "Open in Kompas",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/scripts/open_in_kompas.py",
+                "${workspaceFolder}/test/output.cdw"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
     ]
   }
   
