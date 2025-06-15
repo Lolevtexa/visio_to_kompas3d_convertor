@@ -64,7 +64,7 @@ def parse_visio_to_structure(vsdx_path: str, json_path: str = None) -> dict:
                     update_bounds(bounds, [cx - r, cx + r], [cy - r, cy + r])
 
                 # --- 3) Прямоугольник (rectangle) ---
-                elif getattr(shape, "media", None) and shape.media.rectangle:
+                elif getattr(shape, "width", None) is not None and getattr(shape, "height", None) is not None:
                     px     = to_mm((left + right) / 2.0)
                     py     = to_mm((bottom + top) / 2.0)
                     width  = to_mm(right - left)
