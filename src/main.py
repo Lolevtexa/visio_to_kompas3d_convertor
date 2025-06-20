@@ -1,6 +1,6 @@
 import argparse
 from visio_parser.parser import parse_visio_to_structure
-from kompas_builder.builder import build_kompas_from_structure
+from kompas_builder.builder_batch import build_kompas_from_structure
 
 def main():
     p = argparse.ArgumentParser()
