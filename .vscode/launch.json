@@ -18,6 +18,21 @@
       }
     },
     {
+      "name": "JSON → Kompas (builder)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "kompas_builder.builder",
+      "args": [
+        "${workspaceFolder}\\test\\data.json",
+        "${workspaceFolder}\\test\\output_from_json.cdw"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src;${workspaceFolder}/sdk"
+      }
+    },
+    {
       "name": "Visio → Kompas (full)",
       "type": "debugpy",
       "request": "launch",
@@ -34,21 +49,6 @@
         "PYTHONPATH": "${workspaceFolder}/src;${workspaceFolder}/sdk"
       },
       "postDebugTask": "Open in Kompas"
-    },
-    {
-      "name": "JSON → Kompas (builder)",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "kompas_builder.builder",
-      "args": [
-        "${workspaceFolder}\\test\\data.json",
-        "${workspaceFolder}\\test\\output_from_json.cdw"
-      ],
-      "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src;${workspaceFolder}/sdk"
-      }
     }
   ]
 }
