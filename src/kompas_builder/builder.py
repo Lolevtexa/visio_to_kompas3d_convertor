@@ -3,6 +3,44 @@ import sys
 import argparse
 from .kompas_app import KompasApp
 from .kompas2d import Kompas2D
+import math
+
+ANGLE_THRESHOLD = math.radians(1.0)
+ANGLE_THRESHOLD_DEG = 1.0
+
+def _smart_snap(x1, y1, x2, y2):
+    dx, dy = x2 - x1, y2 - y1
+    angle = abs(math.atan2(dy, dx))
+    mod   = angle % (math.pi/2)
+    diff  = min(mod, math.pi/2 - mod)
+    if diff < ANGLE_THRESHOLD:
+        if abs(dy) < abs(dx):
+            # горизонталь
+            y = round((y1 + y2) / 2, 2)
+            return x1, y, x2, y
+        else:
+            # вертикаль
+            x = round((x1 + x2) / 2, 2)
+            return x, y1, x, y2
+    # наклонные — без изменений
+    return x1, y1, x2, y2
+
+def _smart_rect_dims(w, h, ang_deg):
+    """
+    Если ang_deg почти кратен 90°, делаем ang=0 и, при необходимости,
+    меняем местами w и h для вертикальных ориентаций.
+    """
+    k = round(ang_deg / 90.0)
+    if abs(ang_deg - k * 90.0) < ANGLE_THRESHOLD_DEG:
+        # «привязываем» к 0°
+        if k % 2 != 0:
+            # 90° или 270° → меняем местами ширину и высоту
+            return h, w, 0.0
+        else:
+            # 0° или 180° → просто убираем угол
+            return w, h, 0.0
+    # иначе оставляем как есть
+    return w, h, ang_deg
 
 class Builder:
     def __init__(self):
@@ -45,7 +83,8 @@ class Builder:
             vis_h = max(b["max_y"] - b["min_y"], 1)
             usable_w = self.sheet_w - 2*self.margin
             usable_h = self.sheet_h - 2*self.margin
-            scale = min(usable_w/vis_w, usable_h/vis_h)
+            # scale = min(usable_w/vis_w, usable_h/vis_h)
+            scale = 1
 
             # cмещение: левый отступ + сдвиг на предыдущие листы (420 мм)
             off_x = self.margin - b["min_x"]*scale + (idx-1)*self.sheet_w
@@ -54,21 +93,27 @@ class Builder:
             for shp in page["shapes"]:
                 t = shp["type"]
                 if t == "line":
-                    self.doc2d.line(
-                        shp["x1"]*scale + off_x,
-                        shp["y1"]*scale + off_y,
-                        shp["x2"]*scale + off_x,
-                        shp["y2"]*scale + off_y
-                    )
+                    x1 = shp["x1"]*scale + off_x
+                    y1 = shp["y1"]*scale + off_y
+                    x2 = shp["x2"]*scale + off_x
+                    y2 = shp["y2"]*scale + off_y
+
+                    x1, y1, x2, y2 = _smart_snap(x1, y1, x2, y2)
+
+                    self.doc2d.line(x1, y1, x2, y2)
                 elif t == "rectangle":
-                    self.doc2d.rectangle(
-                        shp["x"]*scale + off_x,
-                        shp["y"]*scale + off_y,
-                        shp["width"]*scale,
-                        shp["height"]*scale,
-                        shp.get("angle", 0.0),
-                        center_flag=0
-                    )
+                    cx = shp["x"]*scale + off_x
+                    cy = shp["y"]*scale + off_y
+                    w  = shp["width"]*scale
+                    h  = shp["height"]*scale
+                    ang = shp.get("angle", 0.0)
+
+                    w, h, ang = _smart_rect_dims(w, h, ang)
+
+                    x0 = cx - w/2
+                    y0 = cy - h/2
+
+                    self.doc2d.rectangle(x0, y0, w, h, ang, center_flag=0, style=1)
                 elif t == "circle":
                     self.doc2d.circle(
                         shp["cx"]*scale + off_x,
@@ -76,15 +121,41 @@ class Builder:
                         shp["radius"]*scale
                     )
                 elif t == "text":
-                    # text handling similar to previous
-                    x = shp["x"]*scale + off_x
-                    y = shp["y"]*scale + off_y
-                    ht = 5.0 * scale
-                    style = 1 if shp.get("italic", False) else 0
-                    self.doc2d.text(x, y, ht,
-                                   shp.get("angle", 0.0),
-                                   1.0, style,
-                                   shp["text"])
+                    # исходные координаты и масштаб
+                    x = shp["x"] * scale + off_x
+                    y = shp["y"] * scale + off_y
+
+                    # Новые поля из JSON
+                    bbox_height = shp.get("height", 0.0) * scale       # общая высота текстового баунда (мм → единицы модели)
+                    line_height = shp.get("font_height", 0.0) * scale  # вычисленная высота одной строки (мм → ед. модели)
+
+                    angle    = shp.get("angle", 0.0)
+                    style    = 1 if shp.get("italic", False) else 0
+                    interval = 1.0  # множитель межстрочного интервала (можно взять из JSON, если нужно)
+
+                    halign = shp.get("halign", "center")    # left/center/right
+                    valign = shp.get("valign", "middle")    # top/middle/bottom
+                    color  = shp.get("color", "#000000")
+                    anchor = shp.get("anchor", "middle-center")
+                    text   = shp.get("text", "")
+
+                    # Передаём всё в метод Kompas2D.text,
+                    # добавив два параметра — bbox_height и line_height
+                    self.doc2d.text(
+                        x,
+                        y,
+                        bbox_height,
+                        line_height,
+                        angle,
+                        interval,
+                        style,
+                        text,
+                        halign,
+                        valign,
+                        anchor,
+                        color
+                    )
+
 
         self.doc2d.save_and_close(output_cdw)
         self.kompas.quit()
