@@ -1,7 +1,16 @@
 import json
-from math import inf
+from math import inf, pi
+import re
 from vsdx import VisioFile
 from .utils import to_mm, update_bounds
+
+def get_font_size_from_shape(shape, default_pt=10.0):
+    try:
+        # CellsU понимает универсальные имена ячеек Visio, в том числе "Char.Size"
+        cell = shape.CellsU("Char.Size")
+        return float(cell.ResultIU)  # в пунктах
+    except Exception:
+        return default_pt
 
 def parse_visio_to_structure(vsdx_path: str, json_path: str = None) -> dict:
     """
@@ -65,11 +74,48 @@ def parse_visio_to_structure(vsdx_path: str, json_path: str = None) -> dict:
 
                 # --- 3) Прямоугольник (rectangle) ---
                 elif getattr(shape, "width", None) is not None and getattr(shape, "height", None) is not None:
+                    # размеры в исходных единицах
+                    raw_w = right  - left
+                    raw_h = top    - bottom
+
+                    # 1) оба размера нулевые → пропускаем объект
+                    if abs(raw_w) < 1e-6 and abs(raw_h) < 1e-6:
+                        continue
+
+                    # 2) один из размеров нулевой → это линия  
+                    if abs(raw_h) < 1e-6:
+                        # горизонтальная линия от (left, top) до (right, top)
+                        x1 = to_mm(left)
+                        y1 = to_mm(top)
+                        x2 = to_mm(right)
+                        y2 = to_mm(top)
+                        shapes_list.append({
+                            "type": "line",
+                            "x1": x1, "y1": y1,
+                            "x2": x2, "y2": y2
+                        })
+                        update_bounds(bounds, [x1, x2], [y1, y2])
+                        continue
+                    if abs(raw_w) < 1e-6:
+                        # вертикальная линия от (left, bottom) до (left, top)
+                        x1 = to_mm(left)
+                        y1 = to_mm(bottom)
+                        x2 = to_mm(left)
+                        y2 = to_mm(top)
+                        shapes_list.append({
+                            "type": "line",
+                            "x1": x1, "y1": y1,
+                            "x2": x2, "y2": y2
+                        })
+                        update_bounds(bounds, [x1, x2], [y1, y2])
+                        continue
+
+                    # 3) обычный прямоугольник
                     px     = to_mm((left + right) / 2.0)
                     py     = to_mm((bottom + top) / 2.0)
-                    width  = to_mm(right - left)
-                    height = to_mm(top - bottom)
-                    angle  = getattr(shape, "angle", 0.0) * (180.0 / 3.141592653589793)
+                    width  = to_mm(raw_w)
+                    height = to_mm(raw_h)
+                    angle  = getattr(shape, "angle", 0.0) * (180.0 / pi)
 
                     shapes_list.append({
                         "type":   "rectangle",
@@ -79,8 +125,8 @@ def parse_visio_to_structure(vsdx_path: str, json_path: str = None) -> dict:
                     })
                     half_w, half_h = width / 2.0, height / 2.0
                     update_bounds(bounds,
-                                  [px - half_w, px + half_w],
-                                  [py - half_h, py + half_h])
+                                [px - half_w, px + half_w],
+                                [py - half_h, py + half_h])
 
                 # --- 4) Текст (text) ---
                 # Проверяем: если у фигуры есть текст (внутренний String), то shape.text возвращает строку.
@@ -88,24 +134,55 @@ def parse_visio_to_structure(vsdx_path: str, json_path: str = None) -> dict:
                 if text_content:
                     content = text_content.strip()
                     if content:
-                        # Координаты текста — центр bounding-box фигуры
-                        px = to_mm((left + right) / 2.0)
-                        py = to_mm((bottom + top) / 2.0)
-                        angle = getattr(shape, "angle", 0.0) * (180.0 / 3.141592653589793)
+                        # 2) Центр баунда и угол
+                        px    = to_mm((left + right) / 2.0)
+                        py    = to_mm((bottom + top) / 2.0)
+                        bbox_height= to_mm(top - bottom)
+                        angle = getattr(shape, "angle", 0.0) * (180.0 / pi)
 
-                        italic_flag = getattr(shape, "font_italic", False)
-                        align       = getattr(shape, "text_align", "center")
-                        color       = getattr(shape, "text_color", "#000000")
+                        # lines = content.split('\n')
+                        # n_lines = len(lines)
+                        # line_spacing_factor = 1.2
+                        # font_height = bbox_height / (((n_lines - 1) * line_spacing_factor) + 1)
+                        # pt_size = get_font_size_from_shape(shape)
+                        # font_height = pt_size * 0.3527777778
+                        # font_height = pt_size * 0.25
+                        font_height = 3.5
+
+                        # 3) Итальик-флаг
+                        italic = bool(getattr(shape, "font_italic", False))
+
+                        # 4) Цвет (HEX #RGB или #RRGGBB)
+                        raw_color = getattr(shape, "text_color", "#000000")
+                        if not isinstance(raw_color, str):
+                            color = "#000000"
+                        elif re.match(r"^#(?:[0-9A-Fa-f]{3}){1,2}$", raw_color):
+                            color = raw_color
+                        else:
+                            color = "#000000"
+
+                        # 5) Выравнивание внутри баунда
+                        halign = getattr(shape, "text_align", "center").lower()
+                        # вертикальное выравнивание, если есть
+                        valign = getattr(shape, "text_valign", "middle").lower()
+
+                        # 6) Крепление (anchor) к краям баунда
+                        # возможные варианты: top/middle/bottom + left/center/right
+                        anchor = f"{valign}-{halign}"
 
                         shapes_list.append({
-                            "type":   "text",
-                            "x":      px, "y": py,
-                            "angle":  angle,
-                            "text":   content,
-                            "italic": italic_flag,
-                            "align":  align,
-                            "color":  color,
-                            "anchor": "inside"
+                            "type":         "text",
+                            "x":            px,
+                            "y":            py,
+                            "angle":        angle,
+                            "text":         content,
+                            "italic":       italic,
+                            "color":        color,
+                            "halign":       halign,
+                            "valign":       valign,
+                            "anchor":       anchor,
+                            "height":       bbox_height,
+                            "font_height":  font_height
                         })
                         update_bounds(bounds, [px], [py])
 
