@@ -13,13 +13,9 @@ class KompasApp:
     def quit(self):
         pass
         try:
-            # Если у вас открыт документ, можно сначала закрыть его:
-            # self.app5.ActiveDocument2D.Close()
-            # а потом всё приложение:
             self.app5.Quit()
         except Exception:
             pass
         finally:
-            # Чистим ссылку и деинициализируем COM
             del self.app5
             pythoncom.CoUninitialize()

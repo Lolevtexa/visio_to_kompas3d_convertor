@@ -46,7 +46,7 @@ class Builder:
     def __init__(self):
         self.kompas = KompasApp()
         self.doc2d = Kompas2D(self.kompas)
-        self.sheet_w, self.sheet_h, self.margin = 420.0, 297.0, 10.0
+        self.sheet_w, self.sheet_h, self.margin = 4200000.0, 297.0, 10.0
 
     # def format_sheets(self, total):
     #     """
@@ -87,7 +87,7 @@ class Builder:
             scale = 1
 
             # cмещение: левый отступ + сдвиг на предыдущие листы (420 мм)
-            off_x = self.margin - b["min_x"]*scale + (idx-1)*self.sheet_w
+            off_x = self.margin - b["min_x"]*scale + (idx-1)*self.sheet_w * 2
             off_y = self.margin - b["min_y"]*scale
 
             for shp in page["shapes"]:
