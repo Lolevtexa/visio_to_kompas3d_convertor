@@ -13,6 +13,7 @@ from kompas_builder.kompas5Constants import (
 from kompas_builder.dynamic_array_constants import (
     TEXT_ITEM_ARR, TEXT_LINE_ARR
 )
+import math
 
 class Kompas2D:
     def __init__(self, kompas_app: KompasApp):
@@ -51,8 +52,8 @@ class Kompas2D:
 
     def text(self,
             x, y,
-            bbox_height,    # общая высота параграфа в «единицах модели»
-            line_height,    # высота одной строки в «единицах модели»
+            bbox_height,
+            line_height,
             angle,
             interval,
             style,
@@ -64,8 +65,8 @@ class Kompas2D:
         # 1) Параметры абзаца
         p_par = self.app.get_param_struct(ksParagraphParam)
         p_par.Init()
-        p_par.x       = x
-        p_par.y       = y - line_height / 2
+        p_par.x = x + (line_height/2) * math.sin(math.radians(angle))
+        p_par.y = y - (line_height/2) * math.cos(math.radians(angle))
         p_par.ang     = angle
         p_par.style   = style
 
